@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	_"github.com/mattn/go-sqlite3" // _ is used to say go that we need this package indirectly
+	_ "github.com/mattn/go-sqlite3" // _ is used to say go that we need this package indirectly
 )
 
 var DB *sql.DB
