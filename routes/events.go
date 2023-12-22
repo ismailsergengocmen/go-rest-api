@@ -2,6 +2,7 @@ package routes
 
 import (
 	"go-rest-api/models"
+	"go-rest-api/utils"
 	"net/http"
 	"strconv"
 
@@ -45,16 +46,21 @@ func createEvent(context *gin.Context) {
 		return
 	}
 
+	userId, err := utils.VerifyToken(token)
+
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
+	}
+
 	var event models.Event
-	err := context.ShouldBindJSON(&event)
+	err = context.ShouldBindJSON(&event)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
 		return
 	}
 
-	event.ID = 1
-	event.UserID = 1
+	event.UserID = userId
 
 	err = event.Save()
 
