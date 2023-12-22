@@ -2,12 +2,12 @@ package routes
 
 import (
 	"go-rest-api/models"
-	"go-rest-api/utils"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
+
 
 func getEvents(context *gin.Context) {
 	events, err := models.GetAllEvents()
@@ -19,6 +19,7 @@ func getEvents(context *gin.Context) {
 
 	context.JSON(http.StatusOK, events) //send response
 }
+
 
 func getEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64) // Get path parameter value
@@ -38,28 +39,18 @@ func getEvent(context *gin.Context) {
 	context.JSON(http.StatusOK, event)
 }
 
+
 func createEvent(context *gin.Context) {
-	token := context.Request.Header.Get("Authorization")
-
-	if token == "" {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized"})
-		return
-	}
-
-	userId, err := utils.VerifyToken(token)
-
-	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized."})
-	}
 
 	var event models.Event
-	err = context.ShouldBindJSON(&event)
+	err := context.ShouldBindJSON(&event)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
 		return
 	}
 
+	userId := context.GetInt64("userId")
 	event.UserID = userId
 
 	err = event.Save()
@@ -72,6 +63,7 @@ func createEvent(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"message": "Event created!", "event": event})
 }
 
+
 func updateEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64) // Get path parameter value
 
@@ -80,10 +72,16 @@ func updateEvent(context *gin.Context) {
 		return
 	}
 
-	_, err = models.GetEventByID(eventId)
+	userId := context.GetInt64("userId")
+	event, err := models.GetEventByID(eventId)
 
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch the event"})
+		return
+	}
+
+	if event.UserID != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized to update event"})
 		return
 	}
 
@@ -106,6 +104,7 @@ func updateEvent(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Event updated succesfully"})
 }
 
+
 func deleteEvent(context *gin.Context){
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64) // Get path parameter value
 
@@ -114,10 +113,16 @@ func deleteEvent(context *gin.Context){
 		return
 	}
 
+	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not fetch the event id. Try again later"})
+		return
+	}
+
+	if event.UserID != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized to update event"})
 		return
 	}
 
